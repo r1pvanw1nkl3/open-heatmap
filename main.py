@@ -24,7 +24,6 @@ def fetch_311_data():
         params = {
             "$$app_token": APP_TOKEN,
             "$order": "created_date DESC",
-            "complaint_type": "Noise",
             "$limit": 1000,
             "$offset": offset,
             "$where": "created_date > '2025-01-01T00:00:00' and upper(complaint_type) like '%NOISE%'"
