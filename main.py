@@ -13,6 +13,7 @@ BASE_URL = "https://data.cityofnewyork.us/resource/erm2-nwe9.json"
 def fetch_311_data():
     if not APP_TOKEN:
         print("No app token found")
+        return
 
     params = {
         "$$app_token": APP_TOKEN,
