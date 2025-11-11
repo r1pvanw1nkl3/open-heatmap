@@ -3,6 +3,7 @@ import os
 import json
 import folium
 from folium.plugins import HeatMap
+from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -50,21 +51,49 @@ def fetch_311_data():
 
     return data
 
+def get_popup_text(request):
+    popup_text = ""
+    created = request.get("created_date", None)
+    closed = request.get("closed_date", None)
+    status = request.get("status", None)
+    desc = request.get("descriptor", "")
+    addr = request.get("incident_address", "")
+    if created:
+        popup_text += "Created: {}\n".format(
+            datetime.fromisoformat(created).strftime("%b %d %Y"))
+    if closed:
+        popup_text += "Closed: {}\n".format(
+            datetime.fromisoformat(closed).strftime("%b %d %Y"))
+    if status:
+        popup_text += "Status: {}\n".format(status)
+    if desc and addr:
+        popup_text += "{} at {}".format(desc, addr.title())
+    return popup_text
+
 def main():
     requests = fetch_311_data()
 
     coordinates = []
+    marker_layer = folium.FeatureGroup("Markers")
     for request in requests:
         try:
             lat = float(request.get("latitude", 0))
             lon = float(request.get("longitude", 0))
             if lat != 0 and lon != 0:  # Skip invalid coordinates
                 coordinates.append([lat, lon])
+
+            folium.Marker(
+                location=[lat, lon],
+                tooltip="Details",
+                popup=get_popup_text(request)
+            ).add_to(marker_layer)
         except (ValueError, TypeError):
             continue  # Skip invalid data
 
     map = folium.Map([40.0, -73.0], zoom_start=6)
-    HeatMap(coordinates).add_to(map)
+    HeatMap(coordinates, name="Heatmap").add_to(map)
+    marker_layer.add_to(map)
+    folium.LayerControl().add_to(map)
     map.save('index.html')
 
 if __name__ == "__main__":
