@@ -9,28 +9,35 @@ from dotenv import load_dotenv
 load_dotenv()
 
 APP_TOKEN = os.getenv("NYC_APP_TOKEN")
-BASE_URL = "https://data.cityofnewyork.us/resource/erm2-nwe9.json"
+BASE_URL = "https://data.cityofnewyork.us/api/v3/views/erm2-nwe9/query.json"
 
 def fetch_311_data():
     if not APP_TOKEN:
         print("No app token found")
         return
     
-    offset = 0
+    page_number = 1
     end_of_data = False
     data = []
 
     while not end_of_data:
-        params = {
-            "$$app_token": APP_TOKEN,
-            "$order": "created_date DESC",
-            "$limit": 1000,
-            "$offset": offset,
-            "$where": "created_date > '2025-01-01T00:00:00' and upper(complaint_type) like '%NOISE%'"
+        headers = {
+            'X-App-Token': APP_TOKEN
+        }
+        json_query = {
+            "query": """
+                SELECT *
+                WHERE created_date > '2025-10-01T00:00:00' AND UPPER(complaint_type) LIKE '%NOISE%'
+                ORDER BY created_date DESC
+            """,
+            "page": {
+                "pageNumber": page_number,
+                "pageSize": 30000
+            }
         }
         try:
 
-            response = requests.get(BASE_URL, params=params)
+            response = requests.post(BASE_URL, headers = headers, json=json_query)
             response.raise_for_status()
             new_data = response.json()
 
@@ -40,7 +47,7 @@ def fetch_311_data():
                 print(f"{len(new_data)} new records fetched")
                 data += new_data
                 print(f"{len(data)} total records fetched")
-                offset += 1000
+                page_number += 1
 
         except requests.exceptions.HTTPError as http_err:
             print(f"HTTP Error: {http_err}")
